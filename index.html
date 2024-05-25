@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图床程序</title>
+</head>
+<body>
+    <h1>图片上传</h1>
+    <form id="uploadForm">
+        <label for="fileInput">选择图片:</label>
+        <input type="file" id="fileInput" name="file" accept="image/*">
+        <button type="button" onclick="uploadImage()">上传</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        function uploadImage() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("请选择图片文件！");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('media', file);
+
+            fetch('https://openai.weixin.qq.com/weixinh5/webapp/h774yvzC2xlB4bIgGfX2stc4kvC85J/cos/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.url) {
+                    document.getElementById('result').innerHTML = `<p>上传成功！图片地址: <a href="${data.url}" target="_blank">${data.url}</a></p>`;
+                } else {
+                    document.getElementById('result').innerHTML = `<p>上传失败！</p>`;
+                }
+            })
+            .catch(error => {
+                document.getElementById('result').innerHTML = `<p>上传失败！错误信息: ${error}</p>`;
+            });
+        }
+    </script>
+</body>
+</html>
