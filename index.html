@@ -4,15 +4,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>图床程序</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .result a {
+            color: #007BFF;
+        }
+    </style>
 </head>
 <body>
-    <h1>图片上传</h1>
-    <form id="uploadForm">
-        <label for="fileInput">选择图片:</label>
-        <input type="file" id="fileInput" name="file" accept="image/*">
-        <button type="button" onclick="uploadImage()">上传</button>
-    </form>
-    <div id="result"></div>
+    <div class="container">
+        <h1>图片上传</h1>
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="fileInput">选择图片:</label>
+                <input type="file" id="fileInput" name="file" accept="image/*">
+            </div>
+            <button type="button" class="btn" onclick="uploadImage()">上传</button>
+        </form>
+        <div class="result" id="result"></div>
+    </div>
 
     <script>
         function uploadImage() {
