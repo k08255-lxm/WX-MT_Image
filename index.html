@@ -3,102 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图床程序</title>
+    <title>WX图床</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Microsoft YaHei', sans-serif;
             background-color: #f0f0f0;
-            margin: 0;
-            padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-        }
-        .container {
-            background-color: #fff;
+            margin: 0;
+            background-image: linear-gradient(to bottom right, #74ebd5, #ACB6E5);
+            transition: background-color 0.5s ease;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            text-align: center;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 8px;
             box-sizing: border-box;
         }
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            animation: fadeIn 1s ease-in-out;
+            max-width: 100%;
+            box-sizing: border-box;
         }
-        .btn:hover {
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        h1 {
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .container input[type="file"] {
+            display: none;
+        }
+        .custom-file-upload {
+            border: 2px solid #007bff;
+            display: inline-block;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 30px;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            white-space: nowrap;
+        }
+        .custom-file-upload:hover {
             background-color: #0056b3;
         }
-        .result {
+        .upload-info {
             margin-top: 20px;
-            text-align: center;
         }
-        .result a {
-            color: #007BFF;
+        .upload-info p {
+            margin: 5px 0;
+            color: #333;
+            font-size: 18px;
+            word-wrap: break-word;
+        }
+        .upload-info button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 20px;
+            background-color: #28a745;
+            color: white;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            white-space: nowrap;
+        }
+        .upload-info button:hover {
+            background-color: #218838;
+        }
+        #progressBar {
+            width: 100%;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+        }
+        #progressBar div {
+            height: 20px;
+            background-color: #007bff;
+            width: 0;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+        #imagePreview {
+            margin-top: 20px;
+            max-width: 100%;
+            max-height: 300px;
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>图片上传</h1>
-        <form id="uploadForm">
-            <div class="form-group">
-                <label for="fileInput">选择图片:</label>
-                <input type="file" id="fileInput" name="file" accept="image/*">
-            </div>
-            <button type="button" class="btn" onclick="uploadImage()">上传</button>
-        </form>
-        <div class="result" id="result"></div>
+
+<div class="container">
+    <h1>WX图床</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <label class="custom-file-upload">
+            <input type="file" id="fileInput" name="media" accept="image/*"/>
+            选择图片
+        </label>
+        <button type="submit" class="custom-file-upload">上传</button>
+    </form>
+    <div id="progressBar"><div></div></div>
+    <img id="imagePreview" src="#" alt="图片预览"/>
+    <div class="upload-info" id="uploadInfo" style="display: none;">
+        <p id="imageLink"></p>
+        <button onclick="copyLink()">复制链接</button>
     </div>
+</div>
 
-    <script>
-        function uploadImage() {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
-            if (!file) {
-                alert("请选择图片文件！");
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('media', file);
-
-            fetch('https://openai.weixin.qq.com/weixinh5/webapp/h774yvzC2xlB4bIgGfX2stc4kvC85J/cos/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.url) {
-                    document.getElementById('result').innerHTML = `<p>上传成功！图片地址: <a href="${data.url}" target="_blank">${data.url}</a></p>`;
-                } else {
-                    document.getElementById('result').innerHTML = `<p>上传失败！</p>`;
-                }
-            })
-            .catch(error => {
-                document.getElementById('result').innerHTML = `<p>上传失败！错误信息: ${error}</p>`;
-            });
+<script>
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imagePreview = document.getElementById('imagePreview');
+                imagePreview.src = e.target.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
         }
-    </script>
+    });
+
+    document.getElementById('uploadForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput.files.length > 0) {
+            const formData = new FormData(this);
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'upload.php', true);
+
+            xhr.upload.onprogress = function(event) {
+                if (event.lengthComputable) {
+                    const percentComplete = (event.loaded / event.total) * 100;
+                    const progressBar = document.getElementById('progressBar');
+                    progressBar.style.display = 'block';
+                    progressBar.firstElementChild.style.width = percentComplete + '%';
+                }
+            };
+
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    const jsonResponse = JSON.parse(xhr.responseText);
+                    if (jsonResponse.url) {
+                        displayLink(jsonResponse.url);
+                    } else {
+                        showErrorPopup('图片上传成功，但未获取到链接');
+                    }
+                } else {
+                    showErrorPopup('图片上传遇到错误，请检查网络或稍后重试。');
+                }
+            };
+
+            xhr.onerror = function() {
+                showErrorPopup('图片上传遇到错误，请检查网络或稍后重试。');
+            };
+
+            xhr.send(formData);
+        } else {
+            showErrorPopup('请选择一个文件');
+        }
+    });
+
+    function showErrorPopup(message) {
+        alert(message);
+    }
+
+    function displayLink(url) {
+        const linkElement = document.getElementById('imageLink');
+        linkElement.textContent = url;
+        linkElement.href = url;
+        document.getElementById('uploadInfo').style.display = 'block';
+    }
+
+    function copyLink() {
+        const link = document.getElementById('imageLink').textContent;
+        navigator.clipboard.writeText(link).then(() => {
+            alert('链接已复制到剪贴板');
+        }).catch(err => {
+            console.error('无法复制文本: ', err);
+        });
+    }
+</script>
+
 </body>
 </html>
