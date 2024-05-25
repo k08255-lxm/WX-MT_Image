@@ -10,13 +10,14 @@
             background-color: #f0f0f0;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             height: 100vh;
             margin: 0;
             background-image: linear-gradient(to bottom right, #74ebd5, #ACB6E5);
             transition: background-color 0.5s ease;
             padding: 20px;
             box-sizing: border-box;
+            overflow-y: auto;
         }
         .container {
             background-color: rgba(255, 255, 255, 0.9);
@@ -25,7 +26,8 @@
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
             text-align: center;
             animation: fadeIn 1s ease-in-out;
-            max-width: 100%;
+            max-width: 800px;
+            width: 100%;
             box-sizing: border-box;
         }
         @keyframes fadeIn {
@@ -66,6 +68,7 @@
             color: #333;
             font-size: 18px;
             word-wrap: break-word;
+            white-space: pre-wrap;
         }
         .upload-info button {
             padding: 10px 20px;
@@ -87,19 +90,65 @@
             border-radius: 5px;
             margin-top: 10px;
             display: none;
+            position: relative;
+            height: 20px;
         }
         #progressBar div {
-            height: 20px;
+            height: 100%;
             background-color: #007bff;
             width: 0;
             border-radius: 5px;
             transition: width 0.3s ease;
+            position: absolute;
         }
-        #imagePreview {
+        #progressText {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            font-size: 12px;
+        }
+        .image-preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
             margin-top: 20px;
+            justify-content: center;
+        }
+        .image-preview-wrapper {
+            position: relative;
+            flex: 1 1 45%;
+            max-width: 45%;
+            margin-bottom: 20px;
+        }
+        .image-preview-wrapper img {
             max-width: 100%;
             max-height: 300px;
+            display: block;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            border-radius: 5px;
             display: none;
+            padding: 10px;
+            text-align: center;
         }
     </style>
 </head>
@@ -109,28 +158,37 @@
     <h1>WX图床</h1>
     <form id="uploadForm" enctype="multipart/form-data">
         <label class="custom-file-upload">
-            <input type="file" id="fileInput" name="media" accept="image/*"/>
+            <input type="file" id="fileInput" name="media[]" accept="image/*" multiple/>
             选择图片
         </label>
         <button type="submit" class="custom-file-upload">上传</button>
     </form>
-    <div id="progressBar"><div></div></div>
-    <img id="imagePreview" src="#" alt="图片预览"/>
+    <div id="progressBar"><div></div><div id="progressText"></div></div>
+    <div class="image-preview-container" id="imagePreviewContainer"></div>
     <div class="upload-info" id="uploadInfo" style="display: none;">
         <p id="imageLink"></p>
-        <button onclick="copyLink()">复制链接</button>
+        <button onclick="copyLink()">复制所有链接</button>
     </div>
 </div>
 
 <script>
     document.getElementById('fileInput').addEventListener('change', function(event) {
-        const file = event.target.files[0];
-        if (file) {
+        const files = event.target.files;
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        imagePreviewContainer.innerHTML = '';
+        for (const file of files) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                const imagePreview = document.getElementById('imagePreview');
-                imagePreview.src = e.target.result;
-                imagePreview.style.display = 'block';
+                const wrapper = document.createElement('div');
+                wrapper.classList.add('image-preview-wrapper');
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                const overlay = document.createElement('div');
+                overlay.classList.add('image-overlay');
+                overlay.textContent = '已上传';
+                wrapper.appendChild(img);
+                wrapper.appendChild(overlay);
+                imagePreviewContainer.appendChild(wrapper);
             };
             reader.readAsDataURL(file);
         }
@@ -140,9 +198,14 @@
         event.preventDefault();
         const fileInput = document.getElementById('fileInput');
         if (fileInput.files.length > 0) {
-            const formData = new FormData(this);
+            const formData = new FormData();
+            for (const file of fileInput.files) {
+                formData.append('media[]', file);
+            }
             const xhr = new XMLHttpRequest();
             xhr.open('POST', 'upload.php', true);
+
+            let startTime = new Date().getTime();
 
             xhr.upload.onprogress = function(event) {
                 if (event.lengthComputable) {
@@ -150,14 +213,19 @@
                     const progressBar = document.getElementById('progressBar');
                     progressBar.style.display = 'block';
                     progressBar.firstElementChild.style.width = percentComplete + '%';
+
+                    const elapsedTime = (new Date().getTime() - startTime) / 1000; // seconds
+                    const uploadSpeed = (event.loaded / 1024 / 1024) / elapsedTime; // MB/s
+                    const progressText = document.getElementById('progressText');
+                    progressText.textContent = `[${uploadSpeed.toFixed(2)} MB/s] ${percentComplete.toFixed(2)}% (${(event.loaded / 1024 / 1024).toFixed(2)} MB / ${(event.total / 1024 / 1024).toFixed(2)} MB)`;
                 }
             };
 
             xhr.onload = function() {
                 if (xhr.status === 200) {
                     const jsonResponse = JSON.parse(xhr.responseText);
-                    if (jsonResponse.url) {
-                        displayLink(jsonResponse.url);
+                    if (jsonResponse.urls) {
+                        displayLinks(jsonResponse.urls);
                     } else {
                         showErrorPopup('图片上传成功，但未获取到链接');
                     }
@@ -180,17 +248,35 @@
         alert(message);
     }
 
-    function displayLink(url) {
+    function displayLinks(urls) {
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const wrappers = imagePreviewContainer.getElementsByClassName('image-preview-wrapper');
+        const allLinks = [];
+        for (let i = 0; i < urls.length; i++) {
+            const overlay = wrappers[i].getElementsByClassName('image-overlay')[0];
+            const img = wrappers[i].getElementsByTagName('img')[0];
+                        wrappers[i].dataset.url = urls[i];
+            img.onclick = () => copySingleLink(urls[i]);
+            overlay.style.display = 'flex';
+            allLinks.push(urls[i]);
+        }
         const linkElement = document.getElementById('imageLink');
-        linkElement.textContent = url;
-        linkElement.href = url;
+        linkElement.textContent = allLinks.join('\n');
         document.getElementById('uploadInfo').style.display = 'block';
+    }
+
+    function copySingleLink(url) {
+        navigator.clipboard.writeText(url).then(() => {
+            alert('链接已复制到剪贴板');
+        }).catch(err => {
+            console.error('无法复制文本: ', err);
+        });
     }
 
     function copyLink() {
         const link = document.getElementById('imageLink').textContent;
         navigator.clipboard.writeText(link).then(() => {
-            alert('链接已复制到剪贴板');
+            alert('所有链接已复制到剪贴板');
         }).catch(err => {
             console.error('无法复制文本: ', err);
         });
